@@ -39,11 +39,15 @@ export function checkRateLimit(identifier: string): boolean {
 
 function cleanupExpiredEntries(): void {
   const now = Date.now()
-  for (const [key, value] of rateLimitMap.entries()) {
+  const keysToDelete: string[] = []
+
+  rateLimitMap.forEach((value, key) => {
     if (now > value.resetAt) {
-      rateLimitMap.delete(key)
+      keysToDelete.push(key)
     }
-  }
+  })
+
+  keysToDelete.forEach(key => rateLimitMap.delete(key))
 }
 
 export function getRateLimitStatus(identifier: string): {
