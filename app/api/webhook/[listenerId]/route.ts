@@ -120,7 +120,7 @@ async function handleWebhook(
         path,
         headers,
         body,
-        queryParams: Object.keys(queryParams).length > 0 ? queryParams : null,
+        queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
         ipAddress,
         userAgent,
       }
