@@ -6,14 +6,22 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getBaseUrl(): string {
+  // Priority 1: Explicit app URL from env
   if (process.env.NEXT_PUBLIC_APP_URL) {
     return process.env.NEXT_PUBLIC_APP_URL
   }
 
+  // Priority 2: Vercel production URL (available in all environments)
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  }
+
+  // Priority 3: Current Vercel deployment URL (preview/branch deployments)
   if (process.env.VERCEL_URL) {
     return `https://${process.env.VERCEL_URL}`
   }
 
+  // Fallback: Local development
   return 'http://localhost:3000'
 }
 
