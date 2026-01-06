@@ -7,18 +7,17 @@ import { getClientIp } from '@/lib/utils'
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
 
-  // Public routes - webhook reception (NO AUTH - just rate limiting)
+  // Public routes - webhook reception (apply rate limiting only)
   if (path.startsWith('/api/webhook/')) {
-    // Temporarily disable rate limiting for testing
-    // const ip = getClientIp(request) || 'unknown'
-    // const rateLimitKey = `webhook:${ip}`
+    const ip = getClientIp(request) || 'unknown'
+    const rateLimitKey = `webhook:${ip}`
 
-    // if (!checkRateLimit(rateLimitKey)) {
-    //   return NextResponse.json(
-    //     { error: 'Too many requests' },
-    //     { status: 429 }
-    //   )
-    // }
+    if (!checkRateLimit(rateLimitKey)) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429 }
+      )
+    }
 
     return NextResponse.next()
   }
