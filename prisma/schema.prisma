@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+model WebhookListener {
+  id          String    @id @default(cuid())
+  name        String?
+  apiKey      String    @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  requests    WebhookRequest[]
+
+  @@index([createdAt])
+  @@map("webhook_listeners")
+}
+
+model WebhookRequest {
+  id              String          @id @default(cuid())
+  listenerId      String
+  method          String
+  path            String
+  headers         Json
+  body            String?
+  queryParams     Json?
+  ipAddress       String?
+  userAgent       String?
+  receivedAt      DateTime        @default(now())
+
+  listener        WebhookListener @relation(fields: [listenerId], references: [id], onDelete: Cascade)
+
+  @@index([listenerId, receivedAt(sort: Desc)])
+  @@index([receivedAt(sort: Desc)])
+  @@map("webhook_requests")
+}
