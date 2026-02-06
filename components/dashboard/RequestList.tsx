@@ -26,6 +26,7 @@ interface RequestListProps {
 export function RequestList({ listenerId }: RequestListProps) {
   const router = useRouter()
   const [selectedRequest, setSelectedRequest] = useState<WebhookRequest | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const fetchRequests = useCallback(async () => {
     const response = await fetch(`/api/listeners/${listenerId}/requests?limit=50`)
@@ -34,7 +35,25 @@ export function RequestList({ listenerId }: RequestListProps) {
     return data.requests as WebhookRequest[]
   }, [listenerId])
 
-  const { data: requests, loading } = usePolling(fetchRequests, 3000)
+  const { data: requests, loading, refetch } = usePolling(fetchRequests, 3000)
+
+  const deleteRequest = async (e: React.MouseEvent, requestId: string) => {
+    e.stopPropagation()
+    if (deletingId) return
+    setDeletingId(requestId)
+    try {
+      const response = await fetch(`/api/listeners/${listenerId}/requests/${requestId}`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) throw new Error('Failed to delete request')
+      if (selectedRequest?.id === requestId) setSelectedRequest(null)
+      refetch()
+    } catch (error) {
+      console.error('Error deleting request:', error)
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const getMethodColor = (method: string) => {
     switch (method) {
@@ -102,8 +121,27 @@ export function RequestList({ listenerId }: RequestListProps) {
                       {request.path}
                     </span>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    {new Date(request.receivedAt).toLocaleString()}
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-500">
+                      {new Date(request.receivedAt).toLocaleString()}
+                    </span>
+                    <button
+                      onClick={(e) => deleteRequest(e, request.id)}
+                      disabled={deletingId === request.id}
+                      className="text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                      title="Delete request"
+                    >
+                      {deletingId === request.id ? (
+                        <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
                 </div>
 
