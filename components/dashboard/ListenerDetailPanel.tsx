@@ -1,39 +1,26 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { usePolling } from '@/hooks/usePolling'
 import { RequestDetails } from './RequestDetails'
-import { Button } from '@/components/ui/button'
+import { CopyButton } from './CopyButton'
 import { Badge } from '@/components/ui/badge'
+import type { Listener, WebhookRequest } from '@/lib/types'
 
-interface WebhookRequest {
-  id: string
-  method: string
-  path: string
-  headers: Record<string, string>
-  body: string | null
-  queryParams: Record<string, string> | null
-  ipAddress: string | null
-  userAgent: string | null
-  receivedAt: string
+interface ListenerDetailPanelProps {
+  listener: Listener
 }
 
-interface RequestListProps {
-  listenerId: string
-}
-
-export function RequestList({ listenerId }: RequestListProps) {
-  const router = useRouter()
+export function ListenerDetailPanel({ listener }: ListenerDetailPanelProps) {
   const [selectedRequest, setSelectedRequest] = useState<WebhookRequest | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const fetchRequests = useCallback(async () => {
-    const response = await fetch(`/api/listeners/${listenerId}/requests?limit=50`)
+    const response = await fetch(`/api/listeners/${listener.id}/requests?limit=50`)
     if (!response.ok) throw new Error('Failed to fetch requests')
     const data = await response.json()
     return data.requests as WebhookRequest[]
-  }, [listenerId])
+  }, [listener.id])
 
   const { data: requests, loading, refetch } = usePolling(fetchRequests, 3000)
 
@@ -42,8 +29,8 @@ export function RequestList({ listenerId }: RequestListProps) {
     if (deletingId) return
     setDeletingId(requestId)
     try {
-      const response = await fetch(`/api/listeners/${listenerId}/requests/${requestId}`, {
-        method: 'DELETE'
+      const response = await fetch(`/api/listeners/${listener.id}/requests/${requestId}`, {
+        method: 'DELETE',
       })
       if (!response.ok) throw new Error('Failed to delete request')
       if (selectedRequest?.id === requestId) setSelectedRequest(null)
@@ -72,31 +59,58 @@ export function RequestList({ listenerId }: RequestListProps) {
     }
   }
 
-  if (loading && !requests) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Loading requests...</p>
-      </div>
-    )
-  }
-
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Webhook Requests
-          </h1>
-          <p className="mt-2 text-gray-600">
-            {requests?.length || 0} requests received
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => router.push('/dashboard')}>
-          Back to Listeners
-        </Button>
+    <div className="p-6 space-y-6">
+      {/* Listener Info Header */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900">
+          {listener.name || 'Unnamed Listener'}
+        </h2>
+        <p className="text-sm text-gray-400 font-mono mt-1">{listener.id}</p>
       </div>
 
-      {requests && requests.length === 0 ? (
+      <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
+        <div>
+          <label className="text-xs font-medium text-gray-500">Webhook URL</label>
+          <div className="flex gap-2 mt-1">
+            <input
+              type="text"
+              value={listener.webhookUrl}
+              readOnly
+              className="flex-1 text-sm font-mono bg-gray-50 border border-gray-200 rounded px-3 py-1.5"
+            />
+            <CopyButton text={listener.webhookUrl} />
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-500">API Key</label>
+          <div className="flex gap-2 mt-1">
+            <input
+              type="text"
+              value={listener.apiKey}
+              readOnly
+              className="flex-1 text-sm font-mono bg-gray-50 border border-gray-200 rounded px-3 py-1.5"
+            />
+            <CopyButton text={listener.apiKey} />
+          </div>
+        </div>
+      </div>
+
+      {/* Requests Section */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900">
+          Webhook Requests
+          <span className="ml-2 text-sm font-normal text-gray-500">
+            {requests?.length || 0} received
+          </span>
+        </h3>
+      </div>
+
+      {loading && !requests ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500">Loading requests...</p>
+        </div>
+      ) : requests && requests.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
           <p className="text-gray-500 mb-2">No requests received yet</p>
           <p className="text-sm text-gray-400">
