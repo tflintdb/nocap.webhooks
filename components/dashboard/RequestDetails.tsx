@@ -3,18 +3,9 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { CopyButton } from './CopyButton'
 
-interface WebhookRequest {
-  id: string
-  method: string
-  path: string
-  headers: Record<string, string>
-  body: string | null
-  queryParams: Record<string, string> | null
-  ipAddress: string | null
-  userAgent: string | null
-  receivedAt: string
-}
+import type { WebhookRequest } from '@/lib/types'
 
 interface RequestDetailsProps {
   request: WebhookRequest
@@ -23,6 +14,14 @@ interface RequestDetailsProps {
 
 export function RequestDetails({ request, onClose }: RequestDetailsProps) {
   const [activeTab, setActiveTab] = useState<'headers' | 'body' | 'query' | 'meta'>('body')
+
+  const tryParseJson = (str: string): any => {
+    try {
+      return JSON.parse(str)
+    } catch {
+      return str
+    }
+  }
 
   const formatJson = (obj: any) => {
     if (!obj) return 'null'
@@ -83,9 +82,14 @@ export function RequestDetails({ request, onClose }: RequestDetailsProps) {
           {activeTab === 'body' && (
             <div>
               {request.body ? (
-                <pre className="bg-gray-50 p-4 rounded-md overflow-auto text-sm font-mono">
-                  {request.body}
-                </pre>
+                <div className="relative group">
+                  <div className="absolute top-2 right-2">
+                    <CopyButton text={formatJson(tryParseJson(request.body))} />
+                  </div>
+                  <pre className="bg-gray-50 p-4 pr-16 rounded-md overflow-auto text-sm font-mono whitespace-pre-wrap break-words">
+                    {formatJson(tryParseJson(request.body))}
+                  </pre>
+                </div>
               ) : (
                 <p className="text-gray-500">No body content</p>
               )}
