@@ -5,6 +5,7 @@ import { usePolling } from '@/hooks/usePolling'
 import { RequestDetails } from './RequestDetails'
 import { CopyButton } from './CopyButton'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import type { Listener, WebhookRequest } from '@/lib/types'
 
 interface ListenerDetailPanelProps {
@@ -14,6 +15,7 @@ interface ListenerDetailPanelProps {
 export function ListenerDetailPanel({ listener }: ListenerDetailPanelProps) {
   const [selectedRequest, setSelectedRequest] = useState<WebhookRequest | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
 
   const fetchRequests = useCallback(async () => {
     const response = await fetch(`/api/listeners/${listener.id}/requests?limit=50`)
@@ -39,6 +41,34 @@ export function ListenerDetailPanel({ listener }: ListenerDetailPanelProps) {
       console.error('Error deleting request:', error)
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  const bulkDeleteOldest = async () => {
+    const input = window.prompt('How many of the oldest requests to delete? (1–50)')
+    if (input === null) return
+
+    const count = parseInt(input, 10)
+    if (isNaN(count) || count < 1 || count > 50) {
+      alert('Please enter a number between 1 and 50.')
+      return
+    }
+
+    if (!window.confirm(`Delete the ${count} oldest request${count === 1 ? '' : 's'}?`)) return
+
+    setBulkDeleting(true)
+    try {
+      const response = await fetch(`/api/listeners/${listener.id}/requests`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ count }),
+      })
+      if (!response.ok) throw new Error('Failed to bulk delete requests')
+      refetch()
+    } catch (error) {
+      console.error('Error bulk deleting requests:', error)
+    } finally {
+      setBulkDeleting(false)
     }
   }
 
@@ -97,13 +127,23 @@ export function ListenerDetailPanel({ listener }: ListenerDetailPanelProps) {
       </div>
 
       {/* Requests Section */}
-      <div>
+      <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">
           Webhook Requests
           <span className="ml-2 text-sm font-normal text-gray-500">
             {requests?.length || 0} received
           </span>
         </h3>
+        {requests && requests.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={bulkDeleteOldest}
+            disabled={bulkDeleting}
+          >
+            {bulkDeleting ? 'Deleting...' : 'Delete Oldest...'}
+          </Button>
+        )}
       </div>
 
       {loading && !requests ? (
