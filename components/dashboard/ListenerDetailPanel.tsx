@@ -45,7 +45,7 @@ export function ListenerDetailPanel({ listener }: ListenerDetailPanelProps) {
   }
 
   const bulkDeleteOldest = async () => {
-    const input = window.prompt('How many of the oldest requests to delete? (1–50)')
+    const input = window.prompt('How many of the oldest requests to delete? (1–50)', '50')
     if (input === null) return
 
     const count = parseInt(input, 10)
